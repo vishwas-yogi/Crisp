@@ -26,7 +26,7 @@
 
 ## Trigger Flow
 
-```
+```text
 User selects text → triggers macOS Service (keyboard shortcut or right-click → Services)
   → macOS writes selected text to private service pasteboard
   → Automator workflow fires (Crisp Rewrite.workflow):

@@ -128,7 +128,7 @@
 				<key>ActionParameters</key>
 				<dict>
 					<key>COMMAND_STRING</key>
-					<string>/usr/bin/pbpaste | /usr/bin/python3 /Users/vishwas.yogi/.crisp/service.py 2&gt;&gt;/tmp/crisp_svc.log</string>
+					<string>/usr/bin/pbpaste | /usr/bin/python3 "$HOME/.crisp/service.py"</string>
 					<key>CheckedForUserDefaultShell</key>
 					<true/>
 					<key>inputMethod</key>

@@ -15,7 +15,7 @@ echo "✓ $CRISP_DIR/service.py"
 
 # Install Automator workflow
 mkdir -p "$SERVICES_DIR"
-rm -rf "$SERVICES_DIR/$WORKFLOW"
+rm -rf "${SERVICES_DIR:?}/${WORKFLOW:?}"
 cp -r "$PROJECT_DIR/$WORKFLOW" "$SERVICES_DIR/"
 echo "✓ $SERVICES_DIR/$WORKFLOW"
 
@@ -25,7 +25,5 @@ echo "✓ Services menu refreshed"
 
 echo ""
 echo "Next steps:"
-echo "  1. System Settings → Keyboard → Keyboard Shortcuts → Services → Text"
-echo "     Find 'Crisp Rewrite' and assign a shortcut (e.g. ⌘⇧R)"
-echo "  2. npm run dev"
-echo "  3. Select any text → use your shortcut (or right-click → Services → Crisp Rewrite)"
+echo "  1. npm run dev"
+echo "  2. Select any text in any app → right-click → Services → Crisp Rewrite (Crisp Rewrite.workflow)"

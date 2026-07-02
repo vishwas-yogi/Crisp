@@ -6,7 +6,7 @@ This document explains how Crisp works end-to-end: the trigger mechanism, data f
 
 ## Big picture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  Any macOS app (WhatsApp, Chrome, Obsidian, etc.)           │
 │                                                             │
@@ -60,7 +60,7 @@ Copies the selected text from the private service pasteboard to `NSPasteboard.ge
 
 **Step 2 — Run Shell Script**
 ```bash
-/usr/bin/pbpaste | /usr/bin/python3 /Users/<you>/.crisp/service.py
+/usr/bin/pbpaste | /usr/bin/python3 "$HOME/.crisp/service.py"
 ```
 Reads the text from `NSPasteboard.general` (now containing the selected text) and pipes it to the Python bridge script. The script's stdout becomes the workflow's output, which macOS uses to replace the selection.
 
@@ -73,7 +73,7 @@ A minimal Python script installed by `npm run install-service`. Responsibilities
 - On success: writes the daemon's `result` to stdout → macOS replaces selection
 - On failure (daemon not running, timeout): writes the original text to stdout → selection is unchanged, no data loss
 
-```
+```text
 stdin (selected text)
   → POST /rewrite  {"text": "..."}
   → stdout (rewritten text or original on error)
@@ -96,7 +96,7 @@ The server is bound to `127.0.0.1` only — not exposed to the network.
 
 Uses `osascript` via stdin to show a native macOS dialog:
 
-```
+```text
 ┌─────────────────────────────┐
 │ Crisp                       │
 │                             │
@@ -136,7 +136,7 @@ Loads `~/.crisp/config.toml` with `smol-toml` (ESM-native TOML parser). Deep-mer
 
 ## Data flow in detail
 
-```
+```text
 right-click → Services → Crisp Rewrite
   │
   │ [macOS]
@@ -175,7 +175,7 @@ right-click → Services → Crisp Rewrite
 
 ## File map
 
-```
+```text
 src/
   index.ts       Entry point — wires config, Lua, HTTP server
   server.ts      HTTP server on 127.0.0.1:8765
