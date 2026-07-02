@@ -1,7 +1,7 @@
 # Crisp — Implementation Plan
 
-> This is a living document. Update after each major decision or phase completion.
-> See `AGENTS.md` for the authoritative agent context (architecture, ADR, phase status).
+> **Status (2026-07-02)**: Phase 1 complete and working.
+> Architecture changed significantly from this plan — trigger is now a macOS Service (Automator workflow + HTTP server), not a keyboard hook. See `AGENTS.md` for the current authoritative context.
 
 ## What We're Building
 

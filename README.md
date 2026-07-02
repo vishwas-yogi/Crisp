@@ -1,19 +1,19 @@
 # Crisp
 
-A local, private AI writing assistant for macOS. Select any text in any app, press a hotkey, and it's rewritten — preserving your voice, in place, instantly.
+A local, private AI writing assistant for macOS. Select any text in any app, trigger the Crisp service, and it's rewritten by a local LLM — in place, preserving your voice.
 
-Works everywhere (Gmail, Obsidian, Slack, Notes, VS Code…) via the clipboard. No browser extension. No cloud. No cost per rewrite.
+Works everywhere (Gmail, WhatsApp, Obsidian, Slack, Notes, VS Code…). No browser extension. No cloud. No cost per rewrite.
 
 ---
 
 ## How it works
 
 1. Select text in any app
-2. Press `Cmd+Shift+R`
-3. Crisp copies the selection, sends it to a local LLM, and pastes the result back
-4. In `confirm` mode (default), you see an Accept/Reject dialog first
+2. Right-click → **Services → Crisp Rewrite (Crisp Rewrite.workflow)**
+3. In `confirm` mode (default): review the rewrite in an Accept/Reject dialog → click **Accept**
+4. The selected text is replaced with the rewritten version
 
-The clipboard is saved before and restored after — your clipboard contents are unaffected.
+The replacement is a standard macOS edit — **Cmd+Z undoes it** in any app.
 
 ---
 
@@ -40,27 +40,25 @@ ollama serve
 # 4. Install Crisp dependencies
 npm install
 
-# 5. Run
+# 5. Install the macOS Service (one-time)
+npm run install-service
+
+# 6. Start the daemon
 npm run dev
 ```
 
-On first run, macOS will ask for two permissions — grant both:
-- **Accessibility** — to read global keydown events
-- **Input Monitoring** — to hook the keyboard system-wide
-
-(System Settings → Privacy & Security → Accessibility / Input Monitoring)
+No permissions dialogs required.
 
 ---
 
 ## Configuration
 
-Crisp reads `~/.crisp/config.toml` on startup. The file is created automatically with defaults if absent.
+Crisp reads `~/.crisp/config.toml` on startup. Created automatically with defaults if absent.
 
 ```toml
 [general]
 mode = "confirm"          # "confirm" shows Accept/Reject dialog; "auto" replaces immediately
 default_tone = "personal"
-hotkey = "cmd+shift+r"    # Change if this conflicts with apps you use
 preserve_tone = true      # Don't alter your voice unless a tone is explicitly applied
 
 [model]
@@ -85,44 +83,32 @@ description = "Trim the fat, keep the point"
 hint = "Make this more concise. Remove filler, keep all meaning."
 ```
 
-### Adding custom tones
+### Custom tones
 
-Add any `[tones.yourname]` block with a `description` and `hint`. The `hint` is injected directly into the model prompt, so write it as a plain instruction.
-
-### Hotkey conflicts
-
-`Cmd+Shift+R` triggers Chrome's hard reload. If you write in the browser often, change the hotkey:
-
-```toml
-[general]
-hotkey = "ctrl+shift+r"   # Ctrl modifier is rarely used in macOS apps
-```
+Add any `[tones.yourname]` block with a `description` and `hint`. The `hint` is injected directly into the model prompt.
 
 ---
 
 ## Lua hooks
 
-Create `~/.crisp/hooks.lua` to customise behaviour per-app without touching the source code.
+Create `~/.crisp/hooks.lua` to customise behaviour per-app without touching source code.
 
 ```lua
--- Called before the model sees the text.
--- Return (text, tone) — modify either to change what gets sent.
+-- Called before the model sees the text. Return (text, tone) to modify either.
 function on_before_rewrite(text, app_name, tone)
-  -- Force professional tone in email apps
-  if app_name == "Mimestream" or app_name == "Mail" or app_name == "Spark" then
+  if app_name == "Mimestream" or app_name == "Mail" then
     return text, "professional"
   end
   return text, tone
 end
 
--- Called after the model returns.
--- Return the final text to paste.
+-- Called after the model returns. Return the final text.
 function on_after_rewrite(original, rewritten, app_name)
   return rewritten
 end
 ```
 
-If the file doesn't exist, hooks are silently skipped. Errors inside hook functions are caught and logged — they never crash the daemon.
+If the file doesn't exist, hooks are silently skipped.
 
 ---
 
@@ -134,41 +120,50 @@ If the file doesn't exist, hooks are silently skipped. Errors inside hook functi
 | `phi3.5:mini` | ~3.0 GB | ~90 tok/s | Better reasoning, 128k context |
 | `qwen2.5:0.5b` | ~0.8 GB | ~300 tok/s | Fastest, reduced quality |
 
-Change model in `~/.crisp/config.toml` under `[model] name = "..."`.
+---
+
+## Known limitations
+
+- **Confirm dialog truncates text at 180 characters** — the full text is still sent to the model and used for replacement; only the preview in the dialog is shortened.
+- **`auto` mode replaces without confirmation** — safe for short text, use carefully for long selections.
+- **Daemon must be running** — if `npm run dev` isn't active, the service silently returns the original text unchanged.
 
 ---
 
 ## Dev commands
 
 ```bash
-npm run dev          # Start the daemon (tsx, hot-reloadable)
-npm run typecheck    # TypeScript type check
-npm run lint         # ESLint
-npm run lint:fix     # ESLint with auto-fix
-npm run format       # Prettier format
-npm run format:check # Prettier check (for CI)
+npm run dev              # Start the daemon
+npm run install-service  # (Re)install the macOS Service workflow
+npm run typecheck        # TypeScript type check
+npm run lint             # ESLint
+npm run lint:fix         # ESLint with auto-fix
+npm run format           # Prettier format
+npm run format:check     # Prettier check
 ```
 
 ---
 
-## Project structure
+## Troubleshooting
 
-```
-src/
-  index.ts      — Main daemon: wires hotkey → clipboard → model → confirm → paste
-  types.ts      — Shared TypeScript types (Config, UndoEntry, LuaRunner, ToneConfig)
-  config.ts     — Loads ~/.crisp/config.toml, deep-merges with typed defaults
-  rewriter.ts   — Ollama client, prompt assembly, output sanitisation
-  clipboard.ts  — save / copySelection / read / write / paste / restore + undo stack
-  hotkey.ts     — uiohook-napi global hotkey listener, parses "cmd+shift+r" strings
-  confirm.ts    — osascript Accept/Reject dialog and notify() helper
-  lua.ts        — wasmoon Lua 5.4 runner, lazy-loaded, noop fallback
-```
+**Service doesn't appear in right-click menu** — run `npm run install-service` and reopen the app. If two "Crisp Rewrite" items appear, always use the one labelled `(Crisp Rewrite.workflow)`.
+
+**Nothing happens when the service is clicked** — make sure `npm run dev` is running.
+
+**Wrong text is rewritten** — avoid copying anything between selecting text and triggering the service; the workflow reads from the clipboard.
+
+**Rewrite is slow on first use** — Ollama loads the model on the first request (~2s). Subsequent rewrites are fast. Increase `keepalive` in config.toml to keep the model warm.
+
+---
+
+## Architecture
+
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for a detailed breakdown of how all the pieces fit together.
 
 ---
 
 ## Roadmap
 
-- **Phase 2**: Undo hotkey, menu bar icon with tone switcher, launchd auto-start
-- **Phase 3**: Side-by-side diff confirm UI, tone quick-picker hotkey, long-text chunking
+- **Phase 2**: Menu bar icon with tone switcher, launchd auto-start on login
+- **Phase 3**: Full-text diff confirm UI (no truncation), tone quick-picker, long-text chunking
 - **Phase 4**: MLX backend (Apple Neural Engine), optional browser extension
